@@ -62,22 +62,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         MaterialButton button = (MaterialButton) v;
         String buttonText = button.getText().toString();
         String prevText = solutionTextView.getText().toString();
+        String prevResult = Float.toString(this.calculator.getCurrentResult());
 
+        if (prevResult.endsWith(".0"))
+            prevResult = prevResult.substring(0,prevResult.length() - 2);
 
         switch (buttonText) {
             case "AC":
+                this.calculator.setCurrentResult(0);
                 solutionTextView.setText("");
                 resultTextView.setText("0");
                 return;
             case "=":
-                String finalResult = this.getResult(prevText);
+                String finalResult;
+                String data = solutionTextView.getText().toString();
+
+                finalResult = this.getResult(data);
 
                 if(finalResult.equals("Error...")) return;
 
                 if(finalResult.endsWith(".0"))
                     finalResult = finalResult.substring(0, finalResult.length()-2);
-                this.calculator.setCurrentResult(Float.parseFloat(finalResult));
+
+
                 resultTextView.setText(finalResult);
+                this.calculator.setCurrentResult(Float.parseFloat(finalResult));
+
                 solutionTextView.setText("");
                 return;
             case "C":
@@ -86,10 +96,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 prevText = prevText.substring(0, prevText.length() - 1);
                 solutionTextView.setText(prevText);
                 return;
+            case "+": case "-": case "*": case "/":
+                if(prevResult.equals("0")) break;
 
+                solutionTextView.setText(prevResult + buttonText);
+                return;
         }
-
-        solutionTextView.setText(prevText+buttonText);
+        solutionTextView.setText(prevText + buttonText);
     }
 
     private String getResult(String data) {
@@ -97,6 +110,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Context context = Context.enter();
             context.setOptimizationLevel(-1);
             Scriptable scriptable = context.initStandardObjects();
+
+            String finalResult = context.evaluateString(scriptable, data, "Javascript", 1, null).toString();
+
+            return finalResult;
+        } catch (Exception e) {
+            return "Error...";
+        }
+
+    }
+
+    private String getResult(String data, String prevData) {
+        try {
+            Context context = Context.enter();
+            context.setOptimizationLevel(-1);
+            Scriptable scriptable = context.initStandardObjects();
+
+            data = prevData + data;
             String finalResult = context.evaluateString(scriptable, data, "Javascript", 1, null).toString();
 
             return finalResult;
@@ -108,6 +138,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 }
 
 class Calculator {
+    public Calculator() {
+        this.currentResult = 0;
+    }
 
     private float currentResult;
 
@@ -118,5 +151,12 @@ class Calculator {
     public void setCurrentResult(float currentResult) {
         this.currentResult = currentResult;
     }
+
+}
+
+enum ControllerType {
+    Number,
+    Operator,
+    Other,
 
 }
